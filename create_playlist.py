@@ -2,10 +2,11 @@ import json
 import re
 import requests
 import base64
-from urllib.parse import unquote
-import urllib.parse   # ✅ ADDED
+import urllib.parse
 
-PROXY = "https://arx-fin-live.vercel.app/api/proxy?url="  # ✅ ADDED
+PROXY = "https://arx-fin-live.vercel.app/api/proxy?url="
+
+# --- DEOBFUSCATION HELPERS ---
 
 def _0xe35c(d, e, f):
     g = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+/"
@@ -51,24 +52,26 @@ def deobfuscate(h, n, t, e):
             
     return r
 
-def LEUlrDBkdbMl(s):
+def decode_part(s):
     s = s.replace('-', '+').replace('_', '/')
     while len(s) % 4:
         s += '='
     return base64.b64decode(s).decode('utf-8')
+
+# --- EXTRACT STREAM ---
 
 def get_m3u8_url(channel_url, referer):
     headers = {
         "User-Agent": "Mozilla/5.0",
         "Referer": referer
     }
-    
+
     try:
         response = requests.get(channel_url, headers=headers)
         response.raise_for_status()
-        html_content = response.text
+        html = response.text
 
-        match = re.search(r'eval\(function\(h,u,n,t,e,r\)\{.*?\}\((.*?)\)\)', html_content, re.DOTALL)
+        match = re.search(r'eval\(function\(h,u,n,t,e,r\)\{.*?\}\((.*?)\)\)', html, re.DOTALL)
         if not match:
             return None
 
@@ -112,60 +115,87 @@ def get_m3u8_url(channel_url, referer):
 
         consts = dict(re.findall(r"const\s+(\w+)\s+=\s+'([^']+)'", decoded))
 
-        parts = [LEUlrDBkdbMl(consts[v]) for v in vars_used if v in consts]
+        parts = [decode_part(consts[v]) for v in vars_used if v in consts]
 
         return "".join(parts)
 
     except:
         return None
 
-def get_online_channels(referer):
+# --- SPORTS API ---
+
+def get_event_channels():
     headers = {
         "User-Agent": "Mozilla/5.0",
-        "Referer": referer
+        "Referer": "https://edge.cdn-live.ru/"
     }
+
     try:
         response = requests.get(
-            "https://api.cdn-live.tv/api/v1/channels/?user=cdnlivetv&plan=free",
+            "https://api.cdn-live.tv/api/v1/events/sports/?user=cdnlivetv&plan=free",
             headers=headers
         )
         response.raise_for_status()
 
-        all_channels = response.json().get('channels', [])
-        return [ch for ch in all_channels if ch.get('status') == 'online']
+        data = response.json().get("cdn-live-tv", {})
+        results = []
 
-    except:
-        return []
-
-referer_url = "https://edge.cdn-live.ru/"
-channels_data = get_online_channels(referer_url)
-
-if channels_data:
-    with open("cdn-live.m3u", "w", encoding='utf-8') as f:
-        f.write('#EXTM3U\n')
-
-        for channel in channels_data:
-            print(f"Processing {channel.get('name')}...")
-
-            player_page_url = channel.get('url')
-            if not player_page_url:
+        for sport in data:
+            if not isinstance(data[sport], list):
                 continue
 
-            m3u8_url = get_m3u8_url(player_page_url, referer_url)
+            for match in data[sport]:
+                title = f"{match.get('homeTeam')} vs {match.get('awayTeam')}"
+                tournament = match.get("tournament")
+                time = match.get("time")
 
-            if m3u8_url:
-                name = channel.get('name')
-                code = channel.get('code')
-                logo = channel.get('image')
+                for ch in match.get("channels", []):
+                    results.append({
+                        "title": title,
+                        "tournament": tournament,
+                        "time": time,
+                        "channel_name": ch.get("channel_name"),
+                        "stream_url": ch.get("url"),
+                        "logo": ch.get("image"),
+                        "code": ch.get("channel_code")
+                    })
 
-                # ✅ PROXY CONVERSION
-                encoded = urllib.parse.quote(m3u8_url, safe='')
+        return results
+
+    except Exception as e:
+        print(f"Error fetching events: {e}")
+        return []
+
+# --- MAIN ---
+
+referer_url = "https://edge.cdn-live.ru/"
+channels = get_event_channels()
+
+# optional limit (safe)
+channels = channels[:20]
+
+if channels:
+    with open("cdn-live.m3u", "w", encoding="utf-8") as f:
+        f.write('#EXTM3U\n')
+
+        for ch in channels:
+            print(f"Processing {ch['title']} ({ch['channel_name']})...")
+
+            m3u8 = get_m3u8_url(ch["stream_url"], referer_url)
+
+            if m3u8:
+                # proxy encode
+                encoded = urllib.parse.quote(m3u8, safe='')
                 proxy_url = PROXY + encoded
 
-                f.write(f'#EXTINF:-1 tvg-id="{code}" tvg-name="{name}" tvg-logo="{logo}",{name}\n')
+                # better naming for Jellyfin
+                name = f"{ch['title']} [{ch['tournament']}] ({ch['channel_name']})"
+
+                f.write(f'#EXTINF:-1 tvg-id="{ch["code"]}" tvg-name="{name}" tvg-logo="{ch["logo"]}" group-title="{ch["tournament"]}",{name}\n')
                 f.write(f'#EXTVLCOPT:http-referrer={referer_url}\n')
                 f.write(f"{proxy_url}\n")
 
     print("Playlist created successfully.")
+
 else:
-    print("No channels found.")
+    print("No streams found.")
