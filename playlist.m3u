@@ -1,4 +1,5 @@
 #EXTM3U
 
-#EXTINF:-1,Test Channel
-https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8
+#EXTINF:-1 tvg-id="us" tvg-name="beIN SPORTS 2" tvg-logo="https://api.cdn-live.tv/api/v1/channels/images6318/united-states/bein-sports-2.svg",beIN SPORTS 2
+#EXTVLCOPT:http-referrer=https://edge.cdn-live.ru/
+https://edge.cdn-live.ru/secure/api/v1/us-bein-sports-2/playlist.m3u8?token=e672b3b8a5859ae76d1a728bf107ded2ad0b1ae18e108121bec77dea9f68c104.1774444662.79208a3efd1f99027fc085ecbdb32a48.5a2ee95a22c8d1e3a7f882057848924e.421d6f5d3f75319b4e999cd78419a384&signature=b133d3cf3d762d539e725aff869df2f583e69b7dc97fd04b218216b4a60b69cc
