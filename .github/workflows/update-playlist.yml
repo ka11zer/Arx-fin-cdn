@@ -1,0 +1,33 @@
+name: Update IPTV Playlist
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"  # every 30 minutes
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run extractor
+        run: python create_playlist.py
+
+      - name: Commit playlist
+        run: |
+          git config --global user.name "arx-bot"
+          git config --global user.email "bot@arx.local"
+          git add cdn-live.m3u
+          git commit -m "Update playlist" || echo "No changes"
+          git push
