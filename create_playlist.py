@@ -4,7 +4,7 @@ import requests
 import base64
 import urllib.parse
 
-PROXY = "https://arx-fin-live.vercel.app/api/proxy?url="
+PROXY = "http://192.168.1.101:8090/proxy?url="
 
 # --- DEOBFUSCATION HELPERS ---
 
