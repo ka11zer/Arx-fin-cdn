@@ -9,7 +9,7 @@ PROXY = "http://192.168.1.101:8090/stream?url="
 REFERER = "https://edge.cdn-live.ru/"
 
 # ---------------------------
-# SIAM DEOBFUSCATION
+# DEOBFUSCATION (UNCHANGED)
 # ---------------------------
 def _0xe35c(d, e, f):
     g = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+/"
@@ -61,7 +61,7 @@ def decode_part(s):
 
 
 # ---------------------------
-# EXTRACTOR (RETRY)
+# EXTRACTOR (YOUR VERSION)
 # ---------------------------
 def get_m3u8_url(channel_url):
     headers = {
@@ -126,9 +126,9 @@ def get_m3u8_url(channel_url):
 
 
 # ---------------------------
-# SPORTS API
+# CHANNELS API (NEW)
 # ---------------------------
-def get_event_channels():
+def get_channels():
     headers = {
         "User-Agent": "Mozilla/5.0",
         "Referer": REFERER
@@ -136,37 +136,31 @@ def get_event_channels():
 
     try:
         response = requests.get(
-            "https://api.cdn-live.tv/api/v1/events/sports/?user=cdnlivetv&plan=free",
+            "https://api.cdn-live.tv/api/v1/channels/?user=cdnlivetv&plan=free",
             headers=headers,
             timeout=10
         )
 
-        data = response.json().get("cdn-live-tv", {})
+        data = response.json().get("channels", [])
 
         results = []
 
-        for sport in data:
-            if not isinstance(data[sport], list):
+        for ch in data:
+            if ch.get("status") != "online":
                 continue
 
-            for match in data[sport]:
-                title = f"{match.get('homeTeam')} vs {match.get('awayTeam')}"
-                tournament = match.get("tournament")
-
-                for ch in match.get("channels", []):
-                    results.append({
-                        "title": title,
-                        "tournament": tournament,
-                        "channel_name": ch.get("channel_name"),
-                        "stream_url": ch.get("url"),
-                        "logo": ch.get("image"),
-                        "code": ch.get("channel_code")
-                    })
+            results.append({
+                "name": ch.get("name"),
+                "code": ch.get("code"),
+                "logo": ch.get("image"),
+                "stream_url": ch.get("url"),
+                "category": ch.get("category", "Live TV")
+            })
 
         return results
 
     except Exception as e:
-        print(f"Error fetching events: {e}")
+        print(f"Error fetching channels: {e}")
         return []
 
 
@@ -174,12 +168,12 @@ def get_event_channels():
 # MAIN
 # ---------------------------
 def main():
-    channels = get_event_channels()
+    channels = get_channels()
 
     print(f"Fetched {len(channels)} channels")
 
     if not channels:
-        print("No streams found.")
+        print("No channels found.")
         return
 
     with open("cdn-live.m3u", "w", encoding="utf-8") as f:
@@ -188,14 +182,14 @@ def main():
         success = 0
 
         for ch in channels:
-            name = f"{ch['title']} [{ch['tournament']}] ({ch['channel_name']})"
+            name = ch["name"]
             print(f"Processing: {name}")
 
             if not ch["stream_url"]:
                 continue
 
-            # 🔥 anti-ban delay
-            time.sleep(1.5)
+            # anti-ban delay
+            time.sleep(1.2)
 
             m3u8 = get_m3u8_url(ch["stream_url"])
 
@@ -203,7 +197,10 @@ def main():
                 encoded = urllib.parse.quote(m3u8, safe='')
                 proxy_url = PROXY + encoded
 
-                f.write(f'#EXTINF:-1 group-title="{ch["tournament"]}",{name}\n')
+                f.write(
+                    f'#EXTINF:-1 tvg-id="{ch["code"]}" tvg-name="{name}" '
+                    f'tvg-logo="{ch["logo"]}" group-title="{ch["category"]}",{name}\n'
+                )
                 f.write(f'#EXTVLCOPT:http-referrer={REFERER}\n')
                 f.write(f'#EXTVLCOPT:http-user-agent=Mozilla/5.0\n')
                 f.write(proxy_url + "\n")
