@@ -5,7 +5,7 @@ import base64
 import urllib.parse
 import time
 
-PROXY = "http://192.168.1.101:8090/proxy?url="
+PROXY = "http://192.168.1.101:8090/stream?url="
 REFERER = "https://edge.cdn-live.ru/"
 
 # ---------------------------
