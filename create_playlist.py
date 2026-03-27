@@ -1,130 +1,219 @@
-import requests
-import time
-import random
+import json
 import re
+import requests
+import base64
 
-API_URL = "https://api.cdn-live.tv/api/v1/events/sports/?user=cdnlivetv&plan=free"
+# ---------------------------
+# CONFIG
+# ---------------------------
+SPORTS_API = "https://api.cdn-live.tv/api/v1/events/sports/?user=cdnlivetv&plan=free"
+REFERER = "https://edge.cdn-live.ru/"
+OUTPUT_FILE = "cdn-live.m3u"
 
-# 🔁 YOUR LOCAL PROXY
-PROXY_BASE = "http://192.168.1.101:8090/proxy?url="
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "Referer": REFERER
+}
 
-
-# -------------------------------
-# Extract m3u8 from player API
-# -------------------------------
-def get_m3u8_url(player_url, referer):
-    headers = {
-        "User-Agent": "Mozilla/5.0",
-        "Referer": referer
-    }
-
-    r = requests.get(player_url, headers=headers, timeout=10)
-    r.raise_for_status()
-
-    # Extract m3u8 link
-    match = re.search(r'(https://[^\s"]+\.m3u8[^\s"]*)', r.text)
-
-    if match:
-        return match.group(1)
-
-    return None
+session = requests.Session()
+session.headers.update(HEADERS)
 
 
-# -------------------------------
-# Retry wrapper (VERY IMPORTANT)
-# -------------------------------
-def safe_extract(url, referer):
-    for attempt in range(3):
-        try:
-            return get_m3u8_url(url, referer)
-        except Exception as e:
-            print(f"Retry {attempt+1} failed: {e}")
-            time.sleep(random.uniform(1, 2))
-    return None
+# ---------------------------
+# DEOBFUSCATION (UNCHANGED)
+# ---------------------------
+def _0xe35c(d, e, f):
+    g = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+/"
+    h_chars = g[:e]
+    i_chars = g[:f]
+
+    j = 0
+    d_reversed = d[::-1]
+    for c_idx, c_val in enumerate(d_reversed):
+        if c_val in h_chars:
+            j += h_chars.index(c_val) * (e**c_idx)
+
+    if j == 0:
+        return '0'
+
+    k = ''
+    while j > 0:
+        k = i_chars[j % f] + k
+        j = (j - (j % f)) // f
+
+    return k if k else '0'
 
 
-# -------------------------------
-# Fetch sports data
-# -------------------------------
-def fetch_events():
-    headers = {
-        "User-Agent": "Mozilla/5.0"
-    }
+def deobfuscate(h, n, t, e):
+    r = ""
+    i = 0
+    len_h = len(h)
 
-    r = requests.get(API_URL, headers=headers)
-    r.raise_for_status()
+    delimiter = n[e]
+    n_map = {char: str(idx) for idx, char in enumerate(n)}
 
-    return r.json()
+    while i < len_h:
+        s = ""
+        while i < len_h and h[i] != delimiter:
+            s += h[i]
+            i += 1
+
+        i += 1
+
+        if s:
+            s_digits = "".join([n_map.get(c, c) for c in s])
+            char_code = int(_0xe35c(s_digits, e, 10)) - t
+            r += chr(char_code)
+
+    return r
 
 
-# -------------------------------
-# MAIN
-# -------------------------------
-def main():
-    data = fetch_events()
+def LEUlrDBkdbMl(s):
+    s = s.replace('-', '+').replace('_', '/')
+    while len(s) % 4:
+        s += '='
+    return base64.b64decode(s).decode('utf-8')
 
-    events = data.get("cdn-live-tv", {})
-    playlist = ["#EXTM3U"]
 
-    total_channels = 0
+# ---------------------------
+# EXTRACT M3U8 FROM PLAYER PAGE
+# ---------------------------
+def get_m3u8_url(channel_url):
+    try:
+        response = session.get(channel_url, timeout=10)
+        response.raise_for_status()
+        html_content = response.text
+
+        match = re.search(r'eval\(function\(h,u,n,t,e,r\)\{.*?\}\((.*?)\)\)', html_content, re.DOTALL)
+        if not match:
+            return None
+
+        params_str = match.group(1).strip()
+
+        params_match = re.search(
+            r'([\'"])((?:(?!\1).)*)\1,\s*\d+,\s*([\'"])((?:(?!\3).)*)\3,\s*(\d+),\s*(\d+)',
+            params_str,
+            re.DOTALL
+        )
+
+        if not params_match:
+            return None
+
+        h = params_match.group(2)
+        n = params_match.group(4)
+        t = int(params_match.group(5))
+        e = int(params_match.group(6))
+
+        deobfuscated_code = deobfuscate(h, n, t, e)
+
+        src_match = re.search(r"src:\s*([\w\d]+)", deobfuscated_code)
+        if not src_match:
+            return None
+
+        src_variable_name = src_match.group(1)
+
+        assignment_regex = r"const\s+" + re.escape(src_variable_name) + r"\s*=\s*(.*?);"
+        assignment_match = re.search(assignment_regex, deobfuscated_code)
+
+        if not assignment_match:
+            return None
+
+        assignment_line = assignment_match.group(1)
+
+        decoder_func_match = re.search(r"function\s+([a-zA-Z0-9_]+)\(str\)", deobfuscated_code)
+        if not decoder_func_match:
+            return None
+
+        decoder_func_name = decoder_func_match.group(1)
+
+        parts_vars_regex = re.escape(decoder_func_name) + r"\((\w+)\)"
+        parts_vars = re.findall(parts_vars_regex, assignment_line)
+
+        const_declarations = re.findall(r"const\s+(\w+)\s+=\s+'([^']+)';", deobfuscated_code)
+        parts_dict = {match[0]: match[1] for match in const_declarations}
+
+        url_parts_b64 = [parts_dict[var_name] for var_name in parts_vars]
+        decoded_parts = [LEUlrDBkdbMl(part) for part in url_parts_b64]
+
+        return "".join(decoded_parts)
+
+    except Exception:
+        return None
+
+
+# ---------------------------
+# FETCH SPORTS CHANNELS
+# ---------------------------
+def fetch_sports_channels():
+    res = session.get(SPORTS_API, timeout=10)
+    res.raise_for_status()
+
+    data = res.json().get("data", [])
+    channels = []
+
+    for event in data:
+        event_name = event.get("title", "Unknown Event")
+
+        for ch in event.get("channels", []):
+            ch["event_name"] = event_name
+            channels.append(ch)
+
+    return channels
+
+
+# ---------------------------
+# BUILD PLAYLIST
+# ---------------------------
+def build_playlist(channels):
+    lines = ["#EXTM3U"]
+
+    success = 0
     failed = 0
 
-    for category, matches in events.items():
+    for ch in channels:
+        name = ch.get("name", "Unknown Channel")
+        event = ch.get("event_name", "Unknown Event")
+        player_url = ch.get("url")
 
-        # skip metadata keys
-        if not isinstance(matches, list):
+        full_name = f"{event} - {name}"
+        print(f"Processing: {full_name}")
+
+        if not player_url:
+            print(f"FAILED (no url): {full_name}")
+            failed += 1
             continue
 
-        for match in matches:
-            title = f"{match.get('homeTeam')} vs {match.get('awayTeam')}"
-            time_str = match.get("time", "")
-            tournament = match.get("tournament", "Sports")
+        stream = get_m3u8_url(player_url)
 
-            channels = match.get("channels", [])
-
-            for ch in channels:
-                channel_name = ch.get("channel_name")
-                stream_url = ch.get("url")
-                referer = "https://edge.cdn-live.ru/"
-
-                print(f"Processing: {title} - {channel_name}")
-
-                # 🔥 delay to avoid ban
-                time.sleep(random.uniform(1.5, 3.5))
-
-                m3u8 = safe_extract(stream_url, referer)
-
-                if not m3u8:
-                    print(f"FAILED: {title} - {channel_name}")
-                    failed += 1
-                    continue
-
-                # 🔥 encode for proxy
-                proxied = PROXY_BASE + requests.utils.quote(m3u8, safe="")
-
-                playlist.append(
-                    f'#EXTINF:-1 tvg-id="{ch.get("channel_code")}" '
-                    f'tvg-name="{title} [{tournament}] ({channel_name})" '
-                    f'group-title="{tournament}",{title} [{tournament}] ({channel_name})'
-                )
-
-                playlist.append("#EXTVLCOPT:http-referrer=https://edge.cdn-live.ru/")
-                playlist.append(proxied)
-
-                total_channels += 1
-
-    # -------------------------------
-    # WRITE FILE
-    # -------------------------------
-    with open("cdn-live.m3u", "w", encoding="utf-8") as f:
-        f.write("\n".join(playlist))
+        if stream:
+            lines.append(f'#EXTINF:-1,{full_name}')
+            lines.append(f'#EXTVLCOPT:http-referrer={REFERER}')
+            lines.append(stream)
+            success += 1
+        else:
+            print(f"FAILED: {full_name}")
+            failed += 1
 
     print("\n====================")
-    print(f"TOTAL CHANNELS: {total_channels}")
+    print(f"TOTAL CHANNELS: {success}")
     print(f"FAILED: {failed}")
     print("====================")
 
+    return "\n".join(lines)
 
-# -------------------------------
+
+# ---------------------------
+# MAIN
+# ---------------------------
+def main():
+    channels = fetch_sports_channels()
+    playlist = build_playlist(channels)
+
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        f.write(playlist)
+
+    print(f"\nSaved to {OUTPUT_FILE}")
+
+
 if __name__ == "__main__":
     main()
