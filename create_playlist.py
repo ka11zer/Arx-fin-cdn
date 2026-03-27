@@ -9,7 +9,7 @@ PROXY = "http://192.168.1.101:8090/proxy?url="
 REFERER = "https://edge.cdn-live.ru/"
 
 # ---------------------------
-# SIAM DEOBFUSCATION (UNCHANGED)
+# SIAM DEOBFUSCATION
 # ---------------------------
 def _0xe35c(d, e, f):
     g = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+/"
@@ -61,7 +61,7 @@ def decode_part(s):
 
 
 # ---------------------------
-# 🔥 IMPROVED EXTRACTOR (RETRY + FALLBACK)
+# EXTRACTOR (RETRY)
 # ---------------------------
 def get_m3u8_url(channel_url):
     headers = {
@@ -74,7 +74,6 @@ def get_m3u8_url(channel_url):
             response = requests.get(channel_url, headers=headers, timeout=15)
             html = response.text
 
-            # --- ORIGINAL SIAM PATTERN ---
             match = re.search(r'eval\(function\(h,u,n,t,e,r\)\{.*?\}\((.*?)\)\)', html, re.DOTALL)
 
             if match:
@@ -114,7 +113,6 @@ def get_m3u8_url(channel_url):
                             if final.startswith("http"):
                                 return final
 
-            # --- FALLBACK (direct m3u8) ---
             m3u8 = re.search(r'https?://[^"\']+\.m3u8[^"\']*', html)
             if m3u8:
                 return m3u8.group(0)
@@ -128,7 +126,7 @@ def get_m3u8_url(channel_url):
 
 
 # ---------------------------
-# SPORTS API (CORRECT PARSING)
+# SPORTS API
 # ---------------------------
 def get_event_channels():
     headers = {
@@ -196,14 +194,18 @@ def main():
             if not ch["stream_url"]:
                 continue
 
+            # 🔥 anti-ban delay
+            time.sleep(1.5)
+
             m3u8 = get_m3u8_url(ch["stream_url"])
 
             if m3u8:
                 encoded = urllib.parse.quote(m3u8, safe='')
                 proxy_url = PROXY + encoded
 
-                f.write(f'#EXTINF:-1,{name}\n')
+                f.write(f'#EXTINF:-1 group-title="{ch["tournament"]}",{name}\n')
                 f.write(f'#EXTVLCOPT:http-referrer={REFERER}\n')
+                f.write(f'#EXTVLCOPT:http-user-agent=Mozilla/5.0\n')
                 f.write(proxy_url + "\n")
 
                 success += 1
