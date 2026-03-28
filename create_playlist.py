@@ -9,6 +9,21 @@ PROXY = "http://192.168.1.101:8090/stream?url="
 REFERER = "https://edge.cdn-live.ru/"
 
 # ---------------------------
+# 🌍 FLAG + FALLBACK MAP
+# ---------------------------
+FLAG_MAP = {
+    "us": "🇺🇸",
+    "uk": "🇬🇧",
+    "gb": "🇬🇧",
+    "de": "🇩🇪",
+    "it": "🇮🇹",
+    "fr": "🇫🇷",
+    "es": "🇪🇸",
+    "nz": "🇳🇿",
+    "za": "🇿🇦",
+}
+
+# ---------------------------
 # DEOBFUSCATION (UNCHANGED)
 # ---------------------------
 def _0xe35c(d, e, f):
@@ -61,7 +76,7 @@ def decode_part(s):
 
 
 # ---------------------------
-# EXTRACTOR (YOUR VERSION)
+# EXTRACTOR (WITH RETRY + FALLBACK)
 # ---------------------------
 def get_m3u8_url(channel_url):
     headers = {
@@ -113,6 +128,7 @@ def get_m3u8_url(channel_url):
                             if final.startswith("http"):
                                 return final
 
+            # 🔥 fallback direct m3u8
             m3u8 = re.search(r'https?://[^"\']+\.m3u8[^"\']*', html)
             if m3u8:
                 return m3u8.group(0)
@@ -126,7 +142,7 @@ def get_m3u8_url(channel_url):
 
 
 # ---------------------------
-# CHANNELS API (NEW)
+# CHANNELS API
 # ---------------------------
 def get_channels():
     headers = {
@@ -182,13 +198,18 @@ def main():
         success = 0
 
         for ch in channels:
-            name = ch["name"]
+            code = (ch.get("code") or "").lower()
+
+            # 🔥 flag OR fallback to country code
+            flag = FLAG_MAP.get(code, code.upper())
+
+            name = f'{ch["name"]} {flag}'.strip()
+
             print(f"Processing: {name}")
 
             if not ch["stream_url"]:
                 continue
 
-            # anti-ban delay
             time.sleep(1.2)
 
             m3u8 = get_m3u8_url(ch["stream_url"])
@@ -198,7 +219,7 @@ def main():
                 proxy_url = PROXY + encoded
 
                 f.write(
-                    f'#EXTINF:-1 tvg-id="{ch["code"]}" tvg-name="{name}" '
+                    f'#EXTINF:-1 tvg-id="{ch["code"]}" tvg-name="{ch["name"]}" '
                     f'tvg-logo="{ch["logo"]}" group-title="{ch["category"]}",{name}\n'
                 )
                 f.write(f'#EXTVLCOPT:http-referrer={REFERER}\n')
