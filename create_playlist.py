@@ -9,18 +9,71 @@ PROXY = "http://192.168.1.101:8090/stream?url="
 REFERER = "https://edge.cdn-live.ru/"
 
 # ---------------------------
-# 🌍 FLAG + FALLBACK MAP
+# 🌍 FULL FLAG MAP
 # ---------------------------
 FLAG_MAP = {
-    "us": "🇺🇸",
-    "uk": "🇬🇧",
-    "gb": "🇬🇧",
-    "de": "🇩🇪",
-    "it": "🇮🇹",
-    "fr": "🇫🇷",
-    "es": "🇪🇸",
-    "nz": "🇳🇿",
-    "za": "🇿🇦",
+    # Major
+    "us": "🇺🇸", "uk": "🇬🇧", "gb": "🇬🇧", "ca": "🇨🇦",
+    "au": "🇦🇺", "nz": "🇳🇿",
+
+    # Europe
+    "de": "🇩🇪", "fr": "🇫🇷", "es": "🇪🇸", "it": "🇮🇹",
+    "pt": "🇵🇹", "nl": "🇳🇱", "be": "🇧🇪", "ch": "🇨🇭",
+    "at": "🇦🇹", "se": "🇸🇪", "no": "🇳🇴", "dk": "🇩🇰",
+    "fi": "🇫🇮", "ie": "🇮🇪", "pl": "🇵🇱", "cz": "🇨🇿",
+    "sk": "🇸🇰", "hu": "🇭🇺", "ro": "🇷🇴", "bg": "🇧🇬",
+    "gr": "🇬🇷", "tr": "🇹🇷", "ua": "🇺🇦", "ru": "🇷🇺",
+
+    # Balkans
+    "rs": "🇷🇸", "hr": "🇭🇷", "si": "🇸🇮", "ba": "🇧🇦",
+    "mk": "🇲🇰", "al": "🇦🇱",
+
+    # Middle East
+    "ae": "🇦🇪", "sa": "🇸🇦", "qa": "🇶🇦", "kw": "🇰🇼",
+    "om": "🇴🇲", "bh": "🇧🇭", "il": "🇮🇱", "ir": "🇮🇷",
+    "iq": "🇮🇶", "jo": "🇯🇴", "lb": "🇱🇧", "sy": "🇸🇾",
+
+    # South Asia
+    "in": "🇮🇳", "pk": "🇵🇰", "bd": "🇧🇩", "lk": "🇱🇰",
+    "np": "🇳🇵", "af": "🇦🇫",
+
+    # Southeast Asia
+    "sg": "🇸🇬", "my": "🇲🇾", "th": "🇹🇭", "id": "🇮🇩",
+    "ph": "🇵🇭", "vn": "🇻🇳", "kh": "🇰🇭",
+
+    # East Asia
+    "jp": "🇯🇵", "kr": "🇰🇷", "cn": "🇨🇳", "tw": "🇹🇼",
+    "hk": "🇭🇰",
+
+    # Africa
+    "za": "🇿🇦", "eg": "🇪🇬", "ng": "🇳🇬", "ke": "🇰🇪",
+    "ma": "🇲🇦", "dz": "🇩🇿", "tn": "🇹🇳", "gh": "🇬🇭",
+
+    # Americas
+    "br": "🇧🇷", "ar": "🇦🇷", "mx": "🇲🇽", "cl": "🇨🇱",
+    "co": "🇨🇴", "pe": "🇵🇪", "ve": "🇻🇪",
+    "uy": "🇺🇾", "py": "🇵🇾", "bo": "🇧🇴",
+
+    # Central / Caribbean
+    "cr": "🇨🇷", "pa": "🇵🇦", "gt": "🇬🇹", "cu": "🇨🇺",
+    "do": "🇩🇴", "jm": "🇯🇲",
+
+    # Generic
+    "int": "🌍", "global": "🌍",
+}
+
+# ---------------------------
+# 🧠 EPG MAP
+# ---------------------------
+EPG_MAP = {
+    "espn": "espn.us",
+    "espn 2": "espn2.us",
+    "sky sports main event": "skysportsmainevent.uk",
+    "sky sports premier league": "skysportspremierleague.uk",
+    "sony ten 1": "sonyten1.in",
+    "sony ten 2": "sonyten2.in",
+    "sony ten 3": "sonyten3.in",
+    "bein sports": "beinsports1.qa"
 }
 
 # ---------------------------
@@ -76,7 +129,7 @@ def decode_part(s):
 
 
 # ---------------------------
-# EXTRACTOR (WITH RETRY + FALLBACK)
+# EXTRACTOR (UNCHANGED)
 # ---------------------------
 def get_m3u8_url(channel_url):
     headers = {
@@ -128,7 +181,6 @@ def get_m3u8_url(channel_url):
                             if final.startswith("http"):
                                 return final
 
-            # 🔥 fallback direct m3u8
             m3u8 = re.search(r'https?://[^"\']+\.m3u8[^"\']*', html)
             if m3u8:
                 return m3u8.group(0)
@@ -142,7 +194,7 @@ def get_m3u8_url(channel_url):
 
 
 # ---------------------------
-# CHANNELS API
+# CHANNELS API (UNCHANGED)
 # ---------------------------
 def get_channels():
     headers = {
@@ -192,18 +244,39 @@ def main():
         print("No channels found.")
         return
 
+    used_ids = {}
+
     with open("cdn-live.m3u", "w", encoding="utf-8") as f:
         f.write("#EXTM3U\n")
 
         success = 0
 
         for ch in channels:
+            raw_name = ch.get("name") or ""
             code = (ch.get("code") or "").lower()
 
-            # 🔥 flag OR fallback to country code
-            flag = FLAG_MAP.get(code, code.upper())
+            clean = raw_name.lower()
+            clean = re.sub(r'[^a-z0-9 ]', '', clean)
+            clean = re.sub(r'\s+', ' ', clean).strip()
 
-            name = f'{ch["name"]} {flag}'.strip()
+            tvg_id = None
+            for key in EPG_MAP:
+                if key in clean:
+                    tvg_id = EPG_MAP[key]
+                    break
+
+            if not tvg_id:
+                base = clean.replace(" ", ".")
+                tvg_id = f"{base}.{code}" if code else base
+
+            if tvg_id in used_ids:
+                used_ids[tvg_id] += 1
+                tvg_id = f"{tvg_id}.{used_ids[tvg_id]}"
+            else:
+                used_ids[tvg_id] = 1
+
+            flag = FLAG_MAP.get(code, "🏳️")
+            name = f'{flag} {raw_name}'.strip()
 
             print(f"Processing: {name}")
 
@@ -219,7 +292,7 @@ def main():
                 proxy_url = PROXY + encoded
 
                 f.write(
-                    f'#EXTINF:-1 tvg-id="{ch["code"]}" tvg-name="{ch["name"]}" '
+                    f'#EXTINF:-1 tvg-id="{tvg_id}" tvg-name="{raw_name}" '
                     f'tvg-logo="{ch["logo"]}" group-title="{ch["category"]}",{name}\n'
                 )
                 f.write(f'#EXTVLCOPT:http-referrer={REFERER}\n')
