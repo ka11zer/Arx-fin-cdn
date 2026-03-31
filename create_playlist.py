@@ -9,143 +9,58 @@ PROXY = "http://192.168.1.101:8090/stream?url="
 REFERER = "https://edge.cdn-live.ru/"
 
 # ---------------------------
-# 🌍 FULL FLAG MAP
+# 🌍 FLAG + FALLBACK MAP
 # ---------------------------
 FLAG_MAP = {
+    # Major regions
     "us": "🇺🇸", "uk": "🇬🇧", "gb": "🇬🇧", "ca": "🇨🇦",
     "au": "🇦🇺", "nz": "🇳🇿",
+
+    # Europe
     "de": "🇩🇪", "fr": "🇫🇷", "es": "🇪🇸", "it": "🇮🇹",
     "pt": "🇵🇹", "nl": "🇳🇱", "be": "🇧🇪", "ch": "🇨🇭",
     "at": "🇦🇹", "se": "🇸🇪", "no": "🇳🇴", "dk": "🇩🇰",
     "fi": "🇫🇮", "ie": "🇮🇪", "pl": "🇵🇱", "cz": "🇨🇿",
     "sk": "🇸🇰", "hu": "🇭🇺", "ro": "🇷🇴", "bg": "🇧🇬",
     "gr": "🇬🇷", "tr": "🇹🇷", "ua": "🇺🇦", "ru": "🇷🇺",
-    "rs": "🇷🇸", "hr": "🇭🇷", "si": "🇸🇮",
-    "ae": "🇦🇪", "sa": "🇸🇦", "qa": "🇶🇦",
-    "in": "🇮🇳", "pk": "🇵🇰",
-    "sg": "🇸🇬", "my": "🇲🇾",
-    "jp": "🇯🇵", "kr": "🇰🇷", "cn": "🇨🇳",
-    "za": "🇿🇦", "eg": "🇪🇬",
-    "br": "🇧🇷", "ar": "🇦🇷", "mx": "🇲🇽",
+
+    # Balkans / Eastern
+    "rs": "🇷🇸", "hr": "🇭🇷", "si": "🇸🇮", "ba": "🇧🇦",
+    "mk": "🇲🇰", "al": "🇦🇱",
+
+    # Middle East
+    "ae": "🇦🇪", "sa": "🇸🇦", "qa": "🇶🇦", "kw": "🇰🇼",
+    "om": "🇴🇲", "bh": "🇧🇭", "il": "🇮🇱", "ir": "🇮🇷",
+    "iq": "🇮🇶", "jo": "🇯🇴", "lb": "🇱🇧", "sy": "🇸🇾",
+
+    # South Asia
+    "in": "🇮🇳", "pk": "🇵🇰", "bd": "🇧🇩", "lk": "🇱🇰",
+    "np": "🇳🇵", "af": "🇦🇫",
+
+    # Southeast Asia
+    "sg": "🇸🇬", "my": "🇲🇾", "th": "🇹🇭", "id": "🇮🇩",
+    "ph": "🇵🇭", "vn": "🇻🇳", "kh": "🇰🇭",
+
+    # East Asia
+    "jp": "🇯🇵", "kr": "🇰🇷", "cn": "🇨🇳", "tw": "🇹🇼",
+    "hk": "🇭🇰",
+
+    # Africa
+    "za": "🇿🇦", "eg": "🇪🇬", "ng": "🇳🇬", "ke": "🇰🇪",
+    "ma": "🇲🇦", "dz": "🇩🇿", "tn": "🇹🇳", "gh": "🇬🇭",
+
+    # Americas
+    "br": "🇧🇷", "ar": "🇦🇷", "mx": "🇲🇽", "cl": "🇨🇱",
+    "co": "🇨🇴", "pe": "🇵🇪", "ve": "🇻🇪",
+    "uy": "🇺🇾", "py": "🇵🇾", "bo": "🇧🇴",
+
+    # Central America / Caribbean
+    "cr": "🇨🇷", "pa": "🇵🇦", "gt": "🇬🇹", "cu": "🇨🇺",
+    "do": "🇩🇴", "jm": "🇯🇲",
+
+    # Others commonly seen in IPTV
     "int": "🌍", "global": "🌍",
 }
-
-# ---------------------------
-# 🧠 CHANNEL → EPG MAPPING
-# ---------------------------
-def map_channel(clean, code):
-
-    # US CORE
-    if clean in ["abc", "cbs", "nbc", "fox"]:
-        return f"{clean}.us"
-
-    if "cnn" in clean:
-        return "cnn.us"
-    if "cnbc" in clean:
-        return "cnbc.us"
-    if "fox news" in clean:
-        return "foxnews.us"
-
-    # ESPN
-    if "espn deportes" in clean:
-        return "espndeportes.us"
-    if "espn 2" in clean:
-        return "espn2.us"
-    if "espn news" in clean:
-        return "espnnews.us"
-    if "espn u" in clean:
-        return "espnu.us"
-    if "espn" in clean:
-        return "espn.us"
-
-    # DAZN
-    if "dazn" in clean:
-        if "1" in clean:
-            return "dazn1.de"
-        if "2" in clean:
-            return "dazn2.de"
-        if "laliga" in clean:
-            return "daznlaliga.es"
-        if "italy" in clean or code == "it":
-            return "dazn.it"
-        return "dazn1.de"
-
-    # SKY
-    if "sky sports" in clean:
-        if "main event" in clean:
-            return "skysportsmainevent.uk"
-        if "premier league" in clean:
-            return "skysportspremierleague.uk"
-        if "football" in clean:
-            return "skysportsfootball.uk"
-        if "cricket" in clean:
-            return "skysportscricket.uk"
-        if "f1" in clean:
-            return "skysportsf1.uk"
-        return "skysportsmainevent.uk"
-
-    # MOVISTAR
-    if "movistar" in clean:
-        if "laliga" in clean:
-            return "movistarlaliga.es"
-        if "champions" in clean:
-            return "movistarchampionsleague.es"
-        return "movistardeportes.es"
-
-    # RAI
-    if "rai 1" in clean:
-        return "rai1.it"
-    if "rai 2" in clean:
-        return "rai2.it"
-    if "rai 3" in clean:
-        return "rai3.it"
-    if "rai sport" in clean:
-        return "raisport.it"
-
-    # ZIGGO
-    if "ziggo sport" in clean:
-        if "select" in clean:
-            return "ziggosportselect.nl"
-        return "ziggosport.nl"
-
-    # SPORT TV
-    if "sport tv" in clean:
-        if "1" in clean:
-            return "sporttv1.pt"
-        if "2" in clean:
-            return "sporttv2.pt"
-        if "3" in clean:
-            return "sporttv3.pt"
-        if "4" in clean:
-            return "sporttv4.pt"
-        if "5" in clean:
-            return "sporttv5.pt"
-        return "sporttv1.pt"
-
-    # beIN
-    if "bein" in clean:
-        if "2" in clean:
-            return "beinsports2.qa"
-        if "3" in clean:
-            return "beinsports3.qa"
-        return "beinsports1.qa"
-
-    # ASTRO (EVENT)
-    if "astro cricket" in clean:
-        return "willow.us"
-    if "astro football" in clean:
-        return "skysportsfootball.uk"
-    if "astro" in clean:
-        return "skysportsmainevent.uk"
-
-    # PEACOCK
-    if "peacock event" in clean:
-        return "nbc.us"
-
-    # FALLBACK
-    base = clean.replace(" ", ".")
-    return f"{base}.{code}" if code else base
-
 
 # ---------------------------
 # DEOBFUSCATION (UNCHANGED)
@@ -200,7 +115,7 @@ def decode_part(s):
 
 
 # ---------------------------
-# EXTRACTOR
+# EXTRACTOR (WITH RETRY + FALLBACK)
 # ---------------------------
 def get_m3u8_url(channel_url):
     headers = {
@@ -208,16 +123,59 @@ def get_m3u8_url(channel_url):
         "Referer": REFERER
     }
 
-    try:
-        response = requests.get(channel_url, headers=headers, timeout=15)
-        html = response.text
+    for attempt in range(3):
+        try:
+            response = requests.get(channel_url, headers=headers, timeout=15)
+            html = response.text
 
-        m3u8 = re.search(r'https?://[^"\']+\.m3u8[^"\']*', html)
-        if m3u8:
-            return m3u8.group(0)
+            match = re.search(r'eval\(function\(h,u,n,t,e,r\)\{.*?\}\((.*?)\)\)', html, re.DOTALL)
 
-    except:
-        pass
+            if match:
+                params_str = match.group(1)
+
+                parts = re.search(
+                    r'([\'"])(.*?)\1,\s*\d+,\s*([\'"])(.*?)\3,\s*(\d+),\s*(\d+)',
+                    params_str,
+                    re.DOTALL
+                )
+
+                if parts:
+                    h = parts.group(2)
+                    n = parts.group(4)
+                    t = int(parts.group(5))
+                    e = int(parts.group(6))
+
+                    decoded = deobfuscate(h, n, t, e)
+
+                    src = re.search(r"src:\s*(\w+)", decoded)
+                    if src:
+                        var = src.group(1)
+
+                        assign = re.search(rf"const\s+{var}\s*=\s*(.*?);", decoded)
+                        func_match = re.search(r"function\s+(\w+)\(str\)", decoded)
+
+                        if assign and func_match:
+                            line = assign.group(1)
+                            func = func_match.group(1)
+
+                            vars_used = re.findall(rf"{func}\((\w+)\)", line)
+                            consts = dict(re.findall(r"const\s+(\w+)\s+=\s+'([^']+)'", decoded))
+
+                            parts = [decode_part(consts[v]) for v in vars_used if v in consts]
+                            final = "".join(parts)
+
+                            if final.startswith("http"):
+                                return final
+
+            # 🔥 fallback direct m3u8
+            m3u8 = re.search(r'https?://[^"\']+\.m3u8[^"\']*', html)
+            if m3u8:
+                return m3u8.group(0)
+
+        except Exception:
+            pass
+
+        time.sleep(0.5)
 
     return None
 
@@ -240,16 +198,21 @@ def get_channels():
 
         data = response.json().get("channels", [])
 
-        return [
-            {
+        results = []
+
+        for ch in data:
+            if ch.get("status") != "online":
+                continue
+
+            results.append({
                 "name": ch.get("name"),
                 "code": ch.get("code"),
                 "logo": ch.get("image"),
                 "stream_url": ch.get("url"),
                 "category": ch.get("category", "Live TV")
-            }
-            for ch in data if ch.get("status") == "online"
-        ]
+            })
+
+        return results
 
     except Exception as e:
         print(f"Error fetching channels: {e}")
@@ -262,35 +225,49 @@ def get_channels():
 def main():
     channels = get_channels()
 
+    print(f"Fetched {len(channels)} channels")
+
+    if not channels:
+        print("No channels found.")
+        return
+
     with open("cdn-live.m3u", "w", encoding="utf-8") as f:
         f.write("#EXTM3U\n")
 
+        success = 0
+
         for ch in channels:
-            raw_name = ch.get("name") or ""
             code = (ch.get("code") or "").lower()
 
-            clean = raw_name.lower()
-            clean = re.sub(r'[^a-z0-9 ]', '', clean)
-            clean = re.sub(r'\s+', ' ', clean).strip()
+            # 🔥 flag OR fallback to country code
+            flag = FLAG_MAP.get(code, code.upper())
 
-            tvg_id = map_channel(clean, code)
+            name = f'{ch["name"]} {flag}'.strip()
 
-            flag = FLAG_MAP.get(code, "🏳️")
-            name = f"{flag} {raw_name}"
+            print(f"Processing: {name}")
 
-            m3u8 = get_m3u8_url(ch["stream_url"])
-            if not m3u8:
+            if not ch["stream_url"]:
                 continue
 
-            proxy_url = PROXY + urllib.parse.quote(m3u8, safe='')
+            time.sleep(1.2)
 
-            f.write(
-                f'#EXTINF:-1 tvg-id="{tvg_id}" tvg-name="{raw_name}" '
-                f'tvg-logo="{ch["logo"]}" group-title="{ch["category"]}",{name}\n'
-            )
-            f.write(f'#EXTVLCOPT:http-referrer={REFERER}\n')
-            f.write(f'#EXTVLCOPT:http-user-agent=Mozilla/5.0\n')
-            f.write(proxy_url + "\n")
+            m3u8 = get_m3u8_url(ch["stream_url"])
+
+            if m3u8:
+                encoded = urllib.parse.quote(m3u8, safe='')
+                proxy_url = PROXY + encoded
+
+                f.write(
+                    f'#EXTINF:-1 tvg-id="{ch["code"]}" tvg-name="{ch["name"]}" '
+                    f'tvg-logo="{ch["logo"]}" group-title="{ch["category"]}",{name}\n'
+                )
+                f.write(f'#EXTVLCOPT:http-referrer={REFERER}\n')
+                f.write(f'#EXTVLCOPT:http-user-agent=Mozilla/5.0\n')
+                f.write(proxy_url + "\n")
+
+                success += 1
+
+        print(f"\nTOTAL WORKING: {success}")
 
 
 if __name__ == "__main__":
