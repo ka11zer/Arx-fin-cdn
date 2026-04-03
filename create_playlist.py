@@ -1,16 +1,13 @@
 import re
+import random
 import requests
 import base64
 import urllib.parse
 import time
-import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-PROXY   = "http://192.168.1.101:8090/stream?url="
-REFERER = "https://edge.cdn-live.ru/"
-
-# How many channels to fetch simultaneously
-# 10 is safe and fast; raise to 20 if you want to push it
+PROXY      = "http://192.168.1.101:8090/stream?url="
+REFERER    = "https://edge.cdn-live.ru/"
 MAX_WORKERS = 5
 
 # ---------------------------
@@ -65,7 +62,6 @@ def _0xe35c(d, e, f):
         j //= f
     return k
 
-
 def deobfuscate(h, n, t, e):
     r = ""
     i = 0
@@ -83,23 +79,20 @@ def deobfuscate(h, n, t, e):
             r += chr(char_code)
     return r
 
-
 def decode_part(s):
     s = s.replace('-', '+').replace('_', '/')
     while len(s) % 4:
         s += '='
     return base64.b64decode(s).decode('utf-8')
 
-
 # ---------------------------
-# EXTRACTOR
+# STREAM URL EXTRACTOR
 # ---------------------------
 def get_m3u8_url(channel_url):
     headers = {
         "User-Agent": "Mozilla/5.0",
         "Referer": REFERER
     }
-
     for attempt in range(3):
         try:
             response = requests.get(channel_url, headers=headers, timeout=15)
@@ -118,7 +111,6 @@ def get_m3u8_url(channel_url):
                     t = int(parts.group(5))
                     e = int(parts.group(6))
                     decoded = deobfuscate(h, n, t, e)
-
                     src = re.search(r"src:\s*(\w+)", decoded)
                     if src:
                         var = src.group(1)
@@ -134,26 +126,22 @@ def get_m3u8_url(channel_url):
                             if final.startswith("http"):
                                 return final
 
-            # Fallback: direct m3u8 URL in page source
             m3u8 = re.search(r'https?://[^"\']+\.m3u8[^"\']*', html)
             if m3u8:
                 return m3u8.group(0)
 
         except Exception:
             pass
-
-        # Short retry delay — we're concurrent so no need for long sleeps
         time.sleep(0.3)
-
     return None
-
 
 # ---------------------------
 # PROCESS ONE CHANNEL
-# Returns a dict with result, or None on failure
 # ---------------------------
 def process_channel(ch):
-    time.sleep(random.uniform(0.5, 1.5))  # stagger requests
+    # Random jitter to avoid thundering herd
+    time.sleep(random.uniform(0.5, 1.5))
+
     if not ch.get("stream_url"):
         return None
 
@@ -177,58 +165,47 @@ def process_channel(ch):
         "url":      proxy_url,
     }
 
-
 # ---------------------------
 # CHANNELS API
-# Fetches ALL pages until empty
+# Single fetch — API ignores ?page= and returns the same data every time
 # ---------------------------
 def get_channels():
     headers = {
         "User-Agent": "Mozilla/5.0",
         "Referer": REFERER
     }
+    try:
+        response = requests.get(
+            "https://api.cdn-live.tv/api/v1/channels/?user=cdnlivetv&plan=free",
+            headers=headers,
+            timeout=10
+        )
+        data = response.json()
+        channels = data.get("channels", [])
 
-    results = []
-    page = 1
+        seen = set()
+        results = []
+        for ch in channels:
+            if ch.get("status") != "online":
+                continue
+            key = (ch.get("code"), ch.get("name"))
+            if key in seen:
+                continue
+            seen.add(key)
+            results.append({
+                "name":       ch.get("name"),
+                "code":       ch.get("code"),
+                "logo":       ch.get("image"),
+                "stream_url": ch.get("url"),
+                "category":   ch.get("category", "Live TV"),
+            })
 
-    while True:
-        try:
-            response = requests.get(
-                f"https://api.cdn-live.tv/api/v1/channels/?user=cdnlivetv&plan=free&page={page}",
-                headers=headers,
-                timeout=10
-            )
-            data = response.json()
-            channels = data.get("channels", [])
+        print(f"  Got {len(results)} unique online channels")
+        return results
 
-            if not channels:
-                break  # No more pages
-
-            for ch in channels:
-                if ch.get("status") != "online":
-                    continue
-                results.append({
-                    "name":       ch.get("name"),
-                    "code":       ch.get("code"),
-                    "logo":       ch.get("image"),
-                    "stream_url": ch.get("url"),
-                    "category":   ch.get("category", "Live TV"),
-                })
-
-            print(f"  Page {page}: got {len(channels)} channels ({len(results)} total so far)")
-
-            # If the API returned fewer than a full page, we're done
-            if len(channels) < 50:
-                break
-
-            page += 1
-
-        except Exception as e:
-            print(f"Error fetching page {page}: {e}")
-            break
-
-    return results
-
+    except Exception as e:
+        print(f"Error fetching channels: {e}")
+        return []
 
 # ---------------------------
 # MAIN
@@ -236,7 +213,7 @@ def get_channels():
 def main():
     print("Fetching channel list...")
     channels = get_channels()
-    print(f"Found {len(channels)} online channels\n")
+    print(f"Found {len(channels)} channels\n")
 
     if not channels:
         print("No channels found.")
@@ -250,11 +227,9 @@ def main():
 
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         futures = {executor.submit(process_channel, ch): ch for ch in channels}
-
         for future in as_completed(futures):
             done += 1
             result = future.result()
-
             if result:
                 results.append(result)
                 print(f"[{done}/{len(channels)}] ✓ {result['name']}")
@@ -263,7 +238,6 @@ def main():
                 failed += 1
                 print(f"[{done}/{len(channels)}] ✗ {ch.get('name', '?')} (no stream found)")
 
-    # Sort by category then name for a tidy playlist
     results.sort(key=lambda x: (x["category"], x["name"]))
 
     with open("cdn-live.m3u", "w", encoding="utf-8") as f:
@@ -280,7 +254,6 @@ def main():
     print(f"\n{'='*40}")
     print(f"DONE — {len(results)} working / {failed} failed / {len(channels)} total")
     print(f"Saved to cdn-live.m3u")
-
 
 if __name__ == "__main__":
     main()
