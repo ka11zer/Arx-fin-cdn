@@ -6,7 +6,7 @@ import urllib.parse
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-PROXY      = "http://192.168.1.101:8090/proxy?url="
+PROXY      = "http://192.168.1.101:8090/stream?url="
 REFERER    = "https://edge.cdn-live.ru/"
 MAX_WORKERS = 5
 
