@@ -6,7 +6,7 @@ import urllib.parse
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-PROXY      = "http://192.168.1.101:8090/stream?url="
+PROXY      = "http://192.168.1.101:8282/stream?url="
 REFERER    = "https://cdnlivetv.tv/"
 MAX_WORKERS = 5
 
