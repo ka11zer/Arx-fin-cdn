@@ -176,7 +176,7 @@ def get_channels():
     }
     try:
         response = requests.get(
-            "https://api.cdn-live.tv/api/v1/channels/?user=cdnlivetv&plan=free",
+            "https://api.cdnlivetv.tv/api/v1/channels/?user=cdnlivetv&plan=free",
             headers=headers,
             timeout=10
         )
