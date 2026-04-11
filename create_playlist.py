@@ -6,7 +6,7 @@ import urllib.parse
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-PROXY      = "http://192.168.1.101:8282/stream?url="
+PROXY      = ""
 REFERER    = "https://cdnlivetv.tv/"
 MAX_WORKERS = 5
 
@@ -153,8 +153,6 @@ def process_channel(ch):
     flag = FLAG_MAP.get(code, code.upper())
     name = f'{ch["name"]} {flag}'.strip()
 
-    encoded   = urllib.parse.quote(m3u8, safe='')
-    proxy_url = PROXY + encoded
 
     return {
         "name":     name,
