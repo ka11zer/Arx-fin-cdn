@@ -6,7 +6,6 @@ import urllib.parse
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-PROXY      = ""
 REFERER    = "https://cdnlivetv.tv/"
 MAX_WORKERS = 5
 
@@ -139,7 +138,6 @@ def get_m3u8_url(channel_url):
 # PROCESS ONE CHANNEL
 # ---------------------------
 def process_channel(ch):
-    # Random jitter to avoid thundering herd
     time.sleep(random.uniform(0.5, 1.5))
 
     if not ch.get("stream_url"):
@@ -153,19 +151,19 @@ def process_channel(ch):
     flag = FLAG_MAP.get(code, code.upper())
     name = f'{ch["name"]} {flag}'.strip()
 
-
+    # Store the raw CDN URL — no proxy wrapper
+    # The restreamer on arx handles proxying through port 8090 itself
     return {
         "name":     name,
         "raw_name": ch["name"],
         "code":     ch.get("code", ""),
         "logo":     ch.get("logo", ""),
         "category": ch.get("category", "Live TV"),
-        "url":      proxy_url,
+        "url":      m3u8,
     }
 
 # ---------------------------
 # CHANNELS API
-# Single fetch — API ignores ?page= and returns the same data every time
 # ---------------------------
 def get_channels():
     headers = {
