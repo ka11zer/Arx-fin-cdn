@@ -3,9 +3,6 @@ name: Update IPTV Playlist
 permissions:
   contents: write
 
-on:
-  schedule:
-    - cron: "*/25 * * * *"
 
   workflow_dispatch:
 
