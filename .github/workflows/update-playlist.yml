@@ -3,6 +3,7 @@ name: Update IPTV Playlist
 permissions:
   contents: write
 
+on:
   workflow_dispatch:
 
 jobs:
