@@ -1,0 +1,7 @@
+#EXTM3U
+
+#EXTINF:-1 group-title="Live TV" tvg-id="us" tvg-name="ABC",ABC 🇺🇸
+https://edge.cdnlivetv.ru/secure/api/v1/us-abc/playlist.m3u8?token=3eed227dfc6c3253bfc18d41484d85457789f4f78b342c6f53ed87b7aa0a7d5e.1776322883.5a7a191e03d3d7a80c38ec210552cfbc.54b4f99cb301a68d34e4378575eaa065.701707629b24ce840a5f25b04c69e10b&signature=229df2bc92b829f082aca025d4a84f889fcf5e0ac2011d37957ccd3fef041076#referer=https://cdnlivetv.tv/#origin=https://cdnlivetv.tv/#header=User-Agent:Mozilla/5.0
+
+#EXTINF:-1 group-title="Live TV" tvg-id="us" tvg-name="ACC Network",ACC Network 🇺🇸
+https://edge.cdnlivetv.ru/secure/api/v1/us-acc-network/playlist.m3u8?token=1819939332ae58b2f1d6ec328ef9789e5858ce3ffe77b4a4a19f070f568a3ffc.1776322884.360932b76eb847d63d090b1b6952d9e7.6d051f3832a969f1660eb5cb6d3bef07.bc57ef108ffdd17788a14b644147e8c8&signature=647a0599341bd5fe4f562ef420a70ede3e2ade42a27bbe9aee7df6c7a3c286e2#referer=https://cdnlivetv.tv/#origin=https://cdnlivetv.tv/#header=User-Agent:Mozilla/5.0
