@@ -1,4 +1,4 @@
 #EXTM3U
 
 #EXTINF:-1,ABC
-https://edge.cdnlivetv.ru/secure/api/v1/us-abc/playlist.m3u8?token=...&signature=...#referer=https://cdnlivetv.tv/#origin=https://cdnlivetv.tv/#header=User-Agent:Mozilla/5.0#header=Connection:keep-alive
+https://edge.cdnlivetv.ru/secure/api/v1/us-abc/playlist.m3u8?token=...&signature=...#referer=https://cdnlivetv.tv/#origin=https://cdnlivetv.tv/#header=User-Agent:Mozilla/5.0%20(Windows%20NT%2010.0;%20Win64;%20x64)#header=Connection:keep-alive
