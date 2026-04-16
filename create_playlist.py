@@ -7,7 +7,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 REFERER    = "https://cdnlivetv.tv/"
-MAX_WORKERS = 5
+MAX_WORKERS = 3
 
 # ---------------------------
 # 🌍 FLAG MAP
